@@ -127,14 +127,14 @@ def append_entry(service, document_id, entry_text):
                     'location': {
                         'index': insert_index,
                     },
-                    'text': f"{entry_text}\n"
+                    'text': f"\n{entry_text}\n"
                 }
             },
             {
                 'updateTextStyle': {
                     'range': {
-                        'startIndex': insert_index,
-                        'endIndex': insert_index + len(entry_text)
+                        'startIndex': insert_index + 1, # +1 for the leading newline
+                        'endIndex': insert_index + 1 + len(entry_text)
                     },
                     'textStyle': {
                         'bold': False,
