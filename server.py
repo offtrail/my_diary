@@ -54,54 +54,152 @@ def find_or_create_diary(service, drive_service):
 def append_entry(service, document_id, entry_text):
     today = datetime.datetime.now().strftime("%A, %b %d, %Y")
     
-    requests = [
-        {
-            'insertText': {
-                'location': {
-                    'index': 1,
-                },
-                'text': f"{today}\n{entry_text}\n\n"
-            }
-        },
-        {
-            'updateTextStyle': {
-                'range': {
-                    'startIndex': 1,
-                    'endIndex': 1 + len(today)
-                },
-                'textStyle': {
-                    'bold': True,
-                    'fontSize': {
-                        'magnitude': 12,
-                        'unit': 'PT'
+    # Get current document content to check for existing date
+    doc = service.documents().get(documentId=document_id).execute()
+    content = doc.get('body').get('content')
+    
+    has_todays_date = False
+    if content:
+        # Check the first paragraph (index 1 usually, index 0 is section break)
+        # Content structure is list of StructuralElements. 
+        # We look for the first paragraph's textRun.
+        try:
+            # Iterate through elements to find the first paragraph with text
+            for element in content:
+                if 'paragraph' in element:
+                    elements = element.get('paragraph').get('elements')
+                    for elem in elements:
+                        if 'textRun' in elem:
+                            text = elem.get('textRun').get('content')
+                            if text.strip() == today:
+                                has_todays_date = True
+                                break
+                    if has_todays_date:
+                        break
+        except Exception as e:
+            print(f"Error checking date: {e}")
+
+    requests = []
+    
+    if has_todays_date:
+        # Find the end of the current day's section
+        # We look for the next date header or the end of the document
+        insert_index = -1
+        
+        try:
+            # Start searching after the first paragraph (which is the date header)
+            # content[0] is usually SectionBreak, content[1] is Date Header
+            start_search_index = 2
+            
+            for i in range(start_search_index, len(content)):
+                element = content[i]
+                if 'paragraph' in element:
+                    elements = element.get('paragraph').get('elements')
+                    for elem in elements:
+                        if 'textRun' in elem:
+                            text = elem.get('textRun').get('content').strip()
+                            # Check if this text looks like a date
+                            try:
+                                datetime.datetime.strptime(text, "%A, %b %d, %Y")
+                                # Found a date! This is the start of the previous day.
+                                insert_index = element.get('startIndex')
+                                break
+                            except ValueError:
+                                # Not a date, continue searching
+                                pass
+                    if insert_index != -1:
+                        break
+            
+            if insert_index == -1:
+                # No other date found, insert at the end of the document
+                # The last element is usually a SectionBreak or similar, we want to insert before the final newline
+                # But actually, appending to the end is safer using the last element's endIndex - 1
+                insert_index = content[-1].get('endIndex') - 1
+
+        except Exception as e:
+            print(f"Error finding insert index: {e}")
+            # Fallback: insert after date header if something goes wrong
+            insert_index = 1 + len(today) + 1
+
+        requests = [
+            {
+                'insertText': {
+                    'location': {
+                        'index': insert_index,
                     },
-                    'weightedFontFamily': {
-                        'fontFamily': 'Times New Roman'
-                    }
-                },
-                'fields': 'bold,fontSize,weightedFontFamily'
-            }
-        },
-        {
-            'updateTextStyle': {
-                'range': {
-                    'startIndex': 1 + len(today) + 1,
-                    'endIndex': 1 + len(today) + 1 + len(entry_text)
-                },
-                'textStyle': {
-                    'bold': False,
-                    'fontSize': {
-                        'magnitude': 11,
-                        'unit': 'PT'
+                    'text': f"\n{entry_text}\n"
+                }
+            },
+            {
+                'updateTextStyle': {
+                    'range': {
+                        'startIndex': insert_index + 1, # +1 for the leading newline
+                        'endIndex': insert_index + 1 + len(entry_text)
                     },
-                    'weightedFontFamily': {
-                        'fontFamily': 'Times New Roman'
-                    }
-                },
-                'fields': 'bold,fontSize,weightedFontFamily'
+                    'textStyle': {
+                        'bold': False,
+                        'fontSize': {
+                            'magnitude': 11,
+                            'unit': 'PT'
+                        },
+                        'weightedFontFamily': {
+                            'fontFamily': 'Times New Roman'
+                        }
+                    },
+                    'fields': 'bold,fontSize,weightedFontFamily'
+                }
             }
-        }
-    ]
+        ]
+    else:
+        # Insert new date header and entry at the top
+        requests = [
+            {
+                'insertText': {
+                    'location': {
+                        'index': 1,
+                    },
+                    'text': f"{today}\n{entry_text}\n\n"
+                }
+            },
+            {
+                'updateTextStyle': {
+                    'range': {
+                        'startIndex': 1,
+                        'endIndex': 1 + len(today)
+                    },
+                    'textStyle': {
+                        'bold': True,
+                        'fontSize': {
+                            'magnitude': 12,
+                            'unit': 'PT'
+                        },
+                        'weightedFontFamily': {
+                            'fontFamily': 'Times New Roman'
+                        }
+                    },
+                    'fields': 'bold,fontSize,weightedFontFamily'
+                }
+            },
+            {
+                'updateTextStyle': {
+                    'range': {
+                        'startIndex': 1 + len(today) + 1,
+                        'endIndex': 1 + len(today) + 1 + len(entry_text)
+                    },
+                    'textStyle': {
+                        'bold': False,
+                        'fontSize': {
+                            'magnitude': 11,
+                            'unit': 'PT'
+                        },
+                        'weightedFontFamily': {
+                            'fontFamily': 'Times New Roman'
+                        }
+                    },
+                    'fields': 'bold,fontSize,weightedFontFamily'
+                }
+            }
+        ]
 
     service.documents().batchUpdate(documentId=document_id, body={'requests': requests}).execute()
 
