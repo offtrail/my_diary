@@ -112,9 +112,9 @@ def append_entry(service, document_id, entry_text):
             
             if insert_index == -1:
                 # No other date found, insert at the end of the document
-                # The last element is usually a SectionBreak or similar, we want to insert before the final newline
-                # But actually, appending to the end is safer using the last element's endIndex - 1
-                insert_index = content[-1].get('endIndex') - 1
+                # We want to insert before the final SectionBreak
+                # content[-1] is usually the SectionBreak
+                insert_index = content[-1].get('startIndex')
 
         except Exception as e:
             print(f"Error finding insert index: {e}")
@@ -127,14 +127,14 @@ def append_entry(service, document_id, entry_text):
                     'location': {
                         'index': insert_index,
                     },
-                    'text': f"\n{entry_text}\n"
+                    'text': f"{entry_text}\n"
                 }
             },
             {
                 'updateTextStyle': {
                     'range': {
-                        'startIndex': insert_index + 1, # +1 for the leading newline
-                        'endIndex': insert_index + 1 + len(entry_text)
+                        'startIndex': insert_index,
+                        'endIndex': insert_index + len(entry_text)
                     },
                     'textStyle': {
                         'bold': False,
