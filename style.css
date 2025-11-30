@@ -42,7 +42,7 @@ textarea {
     border: 1px solid #ddd;
     border-radius: 8px;
     font-family: inherit;
-    font-size: 11pt;
+    font-size: 13pt;
     resize: vertical;
     box-sizing: border-box;
     /* Ensures padding doesn't increase width */
