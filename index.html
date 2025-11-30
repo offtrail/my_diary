@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Diary</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <h1 id="date-header">Your diary entry for...</h1>
+        <form id="diary-form">
+            <textarea id="diary-entry" placeholder="What happened today....?" required></textarea>
+            <button type="submit" id="submit-btn">Save Entry</button>
+        </form>
+        <div id="message" class="hidden"></div>
+    </div>
+
+    <script>
+        // Set today's date
+        const dateHeader = document.getElementById('date-header');
+        const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+        const today = new Date().toLocaleDateString('en-US', options);
+        dateHeader.textContent = `Your diary entry for ${today}`;
+
+        // Handle form submission
+        const form = document.getElementById('diary-form');
+        const messageDiv = document.getElementById('message');
+        const submitBtn = document.getElementById('submit-btn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const entry = document.getElementById('diary-entry').value;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+
+            try {
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ entry: entry }),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    messageDiv.textContent = 'Entry saved to "My New Diary"!';
+                    messageDiv.className = 'success';
+                    document.getElementById('diary-entry').value = '';
+                } else {
+                    messageDiv.textContent = 'Error: ' + result.error;
+                    messageDiv.className = 'error';
+                }
+            } catch (error) {
+                messageDiv.textContent = 'Network error. Please ensure the server is running.';
+                messageDiv.className = 'error';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Save Entry';
+                messageDiv.classList.remove('hidden');
+
+                // Hide message after 3 seconds
+                setTimeout(() => {
+                    messageDiv.classList.add('hidden');
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+
+</html>
