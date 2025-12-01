@@ -16,13 +16,17 @@
             <textarea id="diary-entry" placeholder="What happened today....?" required></textarea>
             <button type="submit" id="submit-btn">Save Entry</button>
         </form>
+        <div style="margin-top: 15px;">
+            <a href="https://docs.google.com/document/d/1JH0zFXbegtAZGIFoVWYaob4O9_7JmrFhn42TMUh6ps8/edit?usp=sharing"
+                target="_blank" style="color: var(--primary-color); text-decoration: none;">My Diary</a>
+        </div>
         <div id="message" class="hidden"></div>
     </div>
 
     <script>
         // Set today's date
         const dateHeader = document.getElementById('date-header');
-        const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         const today = new Date().toLocaleDateString('en-US', options);
         dateHeader.textContent = `Your diary entry for ${today}`;
 

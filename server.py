@@ -35,25 +35,12 @@ def get_credentials():
     return creds
 
 def find_or_create_diary(service, drive_service):
-    # Search for the file
-    query = "name = 'My New Diary' and mimeType = 'application/vnd.google-apps.document' and trashed = false"
-    results = drive_service.files().list(q=query, spaces='drive', fields='nextPageToken, files(id, name)').execute()
-    items = results.get('files', [])
-
-    if not items:
-        # Create the file
-        file_metadata = {
-            'name': 'My New Diary',
-            'mimeType': 'application/vnd.google-apps.document'
-        }
-        file = drive_service.files().create(body=file_metadata, fields='id').execute()
-        return file.get('id')
-    else:
-        return items[0]['id']
+    # Return the hardcoded ID
+    return '1JH0zFXbegtAZGIFoVWYaob4O9_7JmrFhn42TMUh6ps8'
 
 def append_entry(service, document_id, entry_text):
     now = datetime.datetime.now()
-    today = f"{now.strftime('%A, %b')} {now.day}, {now.year}"
+    today = f"{now.strftime('%A, %B')} {now.day}, {now.year}"
     
     # Get current document content to check for existing date
     doc = service.documents().get(documentId=document_id).execute()
