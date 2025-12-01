@@ -38,6 +38,20 @@ def find_or_create_diary(service, drive_service):
     # Return the hardcoded ID
     return '1JH0zFXbegtAZGIFoVWYaob4O9_7JmrFhn42TMUh6ps8'
 
+def is_date_header(text):
+    """Checks if the text matches one of the expected date header formats."""
+    formats = [
+        "%A, %B %d, %Y",  # Full Month: Sunday, January 1, 2025
+        "%A, %b %d, %Y"   # Abbreviated Month: Sunday, Jan 1, 2025
+    ]
+    for fmt in formats:
+        try:
+            datetime.datetime.strptime(text, fmt)
+            return True
+        except ValueError:
+            continue
+    return False
+
 def append_entry(service, document_id, entry_text):
     now = datetime.datetime.now()
     today = f"{now.strftime('%A, %B')} {now.day}, {now.year}"
@@ -87,27 +101,10 @@ def append_entry(service, document_id, entry_text):
                         if 'textRun' in elem:
                             text = elem.get('textRun').get('content').strip()
                             # Check if this text looks like a date
-                            try:
-                                # We need to check against the new format too, but for robustness
-                                # we might want to keep the old check or update it.
-                                # The old check was strict strptime.
-                                # Since we changed the format, we should probably check for the new format.
-                                # But parsing "Month D, YYYY" without leading zero is tricky with strptime if we don't know if it's 1 or 2 digits.
-                                # Actually %d matches 01-31. 
-                                # Let's try to parse with the new format logic if possible, or just assume the structure.
-                                # For now, let's keep the loop logic simple or update the regex/parsing if needed.
-                                # The user didn't ask to fix reading old dates, but we should be careful.
-                                # Let's assume for now we just look for the structure.
-                                # However, to be safe and simple, let's just look for the pattern or keep the old check if it works for "Nov 30, 2025".
-                                # %d in strptime usually expects zero-padded? No, %d in strptime (Python) parses "1" as 1.
-                                # So "%A, %b %d, %Y" should match "Sunday, Nov 1, 2025".
-                                datetime.datetime.strptime(text, "%A, %b %d, %Y")
+                            if is_date_header(text):
                                 # Found a date! This is the start of the previous day.
                                 insert_index = element.get('startIndex')
                                 break
-                            except ValueError:
-                                # Not a date, continue searching
-                                pass
                     if insert_index != -1:
                         break
             
